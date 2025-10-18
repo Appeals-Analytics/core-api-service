@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: postgres_db
+    restart: always
     env_file:
       - .env.prod
     environment:
@@ -29,6 +30,24 @@ services:
         limits:
           cpu: '2'
           memory: 4G
+
+  core-api:
+    container_name: core-api-service
+    image: core-api-image
+    restart: always
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PYTHONUNBUFFERED: 1
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    command: "uvicorn main:app --host 0.0.0.0 --port $APP_PORT --reload"
 
 volumes:
   postgres_data:
