@@ -96,5 +96,23 @@ services:
       timeout: 10s
       retries: 10
 
+  core-api:
+    container_name: core-api-service
+    image: core-api-image
+    restart: always
+    build:
+      context: ./core-api-service
+      dockerfile: Dockerfile
+    environment:
+      PYTHONUNBUFFERED: 1
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - kafka
+    ports:
+      - "8000:8000"
+
 volumes:
   postgres_data:
+  kafka_data:

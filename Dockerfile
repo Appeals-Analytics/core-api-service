@@ -18,3 +18,5 @@ WORKDIR /home/appuser/app
 COPY --from=builder /app/ ./
 
 ENV PATH="/home/appuser/app/venv/bin:$PATH"
+
+CMD ["uv", "run", "server"]
