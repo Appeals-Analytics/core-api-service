@@ -19,4 +19,4 @@ COPY --from=builder /app/ ./
 
 ENV PATH="/home/appuser/app/venv/bin:$PATH"
 
-CMD ["uv", "run", "server"]
+CMD ["uv", "run", "python -m", "src.main"]
