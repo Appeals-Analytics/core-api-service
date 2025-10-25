@@ -12,11 +12,11 @@ class KafkaService:
   async def start_producer(self: Self):
 
     producer_config = {
-      "bootstrap_servers": kafka_settings.bootstrap_servers,
-      "security_protocol": kafka_settings.security_protocol,
+      "bootstrap_servers": kafka_settings.bootstrap_servers.get_secret_value(),
+      "security_protocol": kafka_settings.security_protocol.get_secret_value(),
       "sasl_mechanism": kafka_settings.sasl_mechanism,
-      "sasl_plain_username": kafka_settings.sasl_plain_username,
-      "sasl_plain_password": kafka_settings.sasl_plain_password,
+      "sasl_plain_username": kafka_settings.sasl_plain_username.get_secret_value(),
+      "sasl_plain_password": kafka_settings.sasl_plain_password.get_secret_value(),
       "value_serializer": lambda v: json.dumps(v).encode('utf-8'),
     }
 
@@ -26,11 +26,11 @@ class KafkaService:
   async def start_consumer(self: Self, topics: list[str]):
 
       consumer_config = {
-          "bootstrap_servers": kafka_settings.bootstrap_servers,
-          "security_protocol": kafka_settings.security_protocol,
+          "bootstrap_servers": kafka_settings.bootstrap_servers.get_secret_value(),
+          "security_protocol": kafka_settings.security_protocol.get_secret_value(),
           "sasl_mechanism": kafka_settings.sasl_mechanism,
-          "sasl_plain_username": kafka_settings.sasl_plain_username,
-          "sasl_plain_password": kafka_settings.sasl_plain_password,
+          "sasl_plain_username": kafka_settings.sasl_plain_username.get_secret_value(),
+          "sasl_plain_password": kafka_settings.sasl_plain_password.get_secret_value(),
           "group_id": kafka_settings.consumer_group_id,
           "value_deserializer": lambda v: json.loads(v.decode('utf-8')),
       }

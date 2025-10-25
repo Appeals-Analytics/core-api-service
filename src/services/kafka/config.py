@@ -1,13 +1,13 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import SecretStr
+from pydantic import SecretStr, Field
 from typing import Optional
 
 class KafkaSettings(BaseSettings):
     bootstrap_servers: SecretStr
     security_protocol: SecretStr
     sasl_mechanism: str = SecretStr
-    sasl_plain_username: Optional[SecretStr] = None
-    sasl_plain_password: Optional[SecretStr] = None
+    sasl_plain_username: SecretStr
+    sasl_plain_password: SecretStr
     
     consumer_group_id: str
 
