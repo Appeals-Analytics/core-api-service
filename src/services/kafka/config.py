@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import SecretStr, Field
-from typing import Optional
+from pydantic import SecretStr
 
 class KafkaSettings(BaseSettings):
     bootstrap_servers: SecretStr
@@ -14,6 +13,6 @@ class KafkaSettings(BaseSettings):
     topic_in: str
     topic_out: str
 
-    model_config = SettingsConfigDict(env_file=".env", extra='ignore') 
+    model_config = SettingsConfigDict(env_file=".env.kafka", extra='ignore') 
 
 kafka_settings = KafkaSettings()
