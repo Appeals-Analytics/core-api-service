@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile
 
-from src.api.files.utils import validate_file, save_file
+from api.files.utils import validate_file, save_file
 
 files_router = APIRouter(prefix="/files", tags=["File"])
 

@@ -1,7 +1,7 @@
 from opensearchpy import AsyncOpenSearch
-from src.config import configs
-from src.exceptions import RAISE_ERROR_EXCEPTION
-from src.es_indexes.messages import create_messages_index_if_not_exists
+from config import configs
+from exceptions import RAISE_ERROR_EXCEPTION
+from es_indexes.messages import create_messages_index_if_not_exists
 
 async def init_es_async_client() -> AsyncOpenSearch:
     es_client = AsyncOpenSearch(

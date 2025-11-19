@@ -1,5 +1,5 @@
 from fastapi import UploadFile, HTTPException
-from src.api.files.exceptions import INVALID_FILE_EXTENTION, INVALID_FILE_SIZE
+from api.files.exceptions import INVALID_FILE_EXTENTION, INVALID_FILE_SIZE
 from time import time_ns
 
 import os

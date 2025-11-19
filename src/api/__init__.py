@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from src.api.files.router import files_router
-from src.api.batch_data.router import batch_router
+from api.files.router import files_router
+from api.batch_data.router import batch_router
 
 main_router = APIRouter()
 

@@ -2,7 +2,7 @@ import json
 from typing import AsyncGenerator, Optional, Self
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
-from src.services.kafka.config import kafka_settings
+from services.kafka.config import kafka_settings
 
 class KafkaService:
   def __init__(self: Self):

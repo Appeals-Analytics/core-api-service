@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, status
-from src.api.batch_data.exceptions import BATCH_TOO_LARGE_TO_PROCESSING
-from src.api.batch_data.schemas import AppealItem
+from api.batch_data.exceptions import BATCH_TOO_LARGE_TO_PROCESSING
+from api.batch_data.schemas import AppealItem
 from typing import List
-from src.services.kafka.config import kafka_settings
-from src.api.batch_data.service import send_batch_to_kafka
+from services.kafka.config import kafka_settings
+from api.batch_data.service import send_batch_to_kafka
 
 batch_router = APIRouter(prefix="/batch-data", tags=["Batch Data"])
 
