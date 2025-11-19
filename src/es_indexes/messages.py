@@ -57,7 +57,8 @@ async def create_messages_index_if_not_exists(*, es_client: AsyncOpenSearch) -> 
               "score": {"type": "float"}
             }
           },
-          "keywords": {"type": "keyword"}
+          "level_1": {"type": "keyword"},
+          "level_2": {"type": "keyword"}
         }
       }
     }
