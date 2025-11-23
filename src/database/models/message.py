@@ -3,11 +3,12 @@ from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 from src.database import Base
+import uuid
 
 class Message(Base):
     __tablename__ = "messages"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     external_id: Mapped[str] = mapped_column(String, index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime)

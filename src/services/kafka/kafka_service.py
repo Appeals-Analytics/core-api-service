@@ -1,6 +1,9 @@
 import json
 from typing import AsyncGenerator, Optional, Self
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from database.database import AsyncSessionLocal
+from api.message.service import MessageService
+from api.message.schemas import MessageCreate
 
 from services.kafka.config import kafka_settings
 
@@ -47,11 +50,30 @@ class KafkaService:
 
   async def consume_messages(self: Self) -> AsyncGenerator[dict, None]:
 
-      if not self.producer:
+      if not self.consumer:
           raise RuntimeError("Consumer not initialized. Call start_consumer() first.")
 
       async for message in self.consumer:
           yield message.value
+
+  async def consume_and_save_messages(self: Self):
+      """Consume messages and save them to the database"""
+      if not self.consumer:
+          raise RuntimeError("Consumer not initialized. Call start_consumer() first.")
+
+      async for message in self.consumer:
+          
+          if not message.topic == kafka_settings.topic_in:
+            continue
+          
+          try:
+              message_data = json.loads(message.value)
+              async with AsyncSessionLocal() as session:
+                  service = MessageService(session)
+                  msg_create = MessageCreate(**message_data)
+                  await service.create_message(msg_create)
+          except Exception as e:
+              print(f"Error processing Kafka message: {e}")
 
   async def close(self: Self):
     
