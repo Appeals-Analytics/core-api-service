@@ -1,27 +1,30 @@
 from sqlalchemy.ext.asyncio import AsyncConnection
 from .responses import MessageResponse
-from database import MessageRepository
-from .schemas import MessageCreate
+from src.database.repositories.message import MessageRepository
+from .schemas import MessageCreate, MessageQueryFilter
+
+
 class MessageService:
-  
-  def __init__(self, db: AsyncConnection):
-    self.repository: MessageRepository = MessageRepository(db)
-    
-  async def get_message_by_id(self, id: str) -> MessageResponse:
-    
-    message = await self.repository.get_message(id)
-    return self.repository.to_pydantic(message)
-  
-  async def create_message(self,  message: MessageCreate) -> MessageResponse:
+    @classmethod
+    async def get_message_by_id(cls, db: AsyncConnection, id: str) -> MessageResponse:
+        message = await MessageRepository(db).get_message(id)
+        return MessageResponse(**message)
 
-    created_message = await self.repository.create_message(message)
-    return self.repository.to_pydantic(created_message)
+    @classmethod
+    async def create_message(
+        cls, db: AsyncConnection, message: MessageCreate
+    ) -> MessageResponse:
+        message_dict = message.model_dump()
+        created_message = await MessageRepository(db).create_message(message_dict)
+        return MessageResponse(**created_message)
 
-  async def get_messages(self, skip: int = 0, limit: int = 100) -> list[MessageResponse]:
-    
-    messages = await self.repository.get_messages(skip, limit)
-    return [self.repository.to_pydantic(msg) for msg in messages]
+    @classmethod
+    async def get_messages(
+        self, db: AsyncConnection, params: MessageQueryFilter
+    ) -> list[MessageResponse]:
+        messages = await MessageRepository(db).get_messages(params)
+        return [MessageResponse(**msg) for msg in messages]
 
-  async def delete_message(self, id: str) -> None:
-    
-    await self.repository.delete_message(id)
+    @classmethod
+    async def delete_message(self, db: AsyncConnection, id: str) -> None:
+        await MessageRepository(db).delete_message(id)
