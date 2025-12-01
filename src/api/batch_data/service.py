@@ -1,4 +1,4 @@
-from src.services.kafka.kafka_service import kafka_service
+from src.services import kafka_service
 from typing import List
 
 

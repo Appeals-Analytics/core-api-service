@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from src.services.kafka.kafka_service import kafka_service
-from src.services.kafka.config import kafka_settings
+from src.services import kafka_service, kafka_settings
 import asyncio
 
 
