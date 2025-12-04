@@ -14,7 +14,7 @@ class KafkaSettings(BaseSettings):
     topic_in: str
     topic_out: str
 
-    model_config = SettingsConfigDict(env_file=".env.kafka", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 kafka_settings = KafkaSettings()
