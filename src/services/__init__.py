@@ -1,6 +1,6 @@
 from .file_upload.service import process_file
 from .kafka.config import kafka_settings
-from .kafka.kafka_service import kafka_service
+from .kafka.service import kafka_service
 
 __all__ = [
   "process_file",

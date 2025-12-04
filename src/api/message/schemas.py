@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
+from pydantic import BaseModel, Field, field_validator
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from src.schemas import (
     EmotionEnum,
@@ -7,6 +7,13 @@ from src.schemas import (
     CategoryLevel1Enum,
     CategoryLevel2Enum,
 )
+
+
+def to_naive_utc(dt: datetime) -> datetime:
+    """Convert datetime to naive UTC"""
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 class MessageCreate(BaseModel):
@@ -24,12 +31,12 @@ class MessageCreate(BaseModel):
         ..., ge=0.0, le=1.0, description="Language detection confidence score"
     )
 
-    sentiment_label: str = Field(..., description="Sentiment classification label")
+    sentiment_label: SentimentEnum = Field(..., description="Sentiment classification label")
     sentiment_score: float = Field(
         ..., ge=0.0, le=1.0, description="Sentiment classification confidence score"
     )
 
-    emotion_label: str = Field(..., description="Emotion classification label")
+    emotion_label: EmotionEnum = Field(..., description="Emotion classification label")
     emotion_score: float = Field(
         ..., ge=0.0, le=1.0, description="Emotion classification confidence score"
     )
@@ -41,12 +48,47 @@ class MessageCreate(BaseModel):
         ..., description="Secondary category classifications"
     )
 
+    @field_validator("event_date", mode="before")
+    @classmethod
+    def normalize_event_date(cls, v):
+        if isinstance(v, str):
+            v = datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return to_naive_utc(v)
+
+    @field_validator("sentiment_label", mode="before")
+    @classmethod
+    def normalize_sentiment(cls, v):
+        if isinstance(v, str):
+            return SentimentEnum(v.lower())
+        return v
+
+    @field_validator("emotion_label", mode="before")
+    @classmethod
+    def normalize_emotion(cls, v):
+        if isinstance(v, str):
+            return EmotionEnum(v.lower())
+        return v
+
+    @field_validator("category_level_1", mode="before")
+    @classmethod
+    def normalize_category_level_1(cls, v):
+        if isinstance(v, str):
+            return CategoryLevel1Enum(v.lower())
+        return v
+
+    @field_validator("category_level_2", mode="before")
+    @classmethod
+    def normalize_category_level_2(cls, v):
+        if isinstance(v, list):
+            return [CategoryLevel2Enum(item.lower()) if isinstance(item, str) else item for item in v]
+        return v
+
 
 class MessageQueryFilter(BaseModel):
-    __seven_days_ago__ = (datetime.now() - timedelta(days=7)).isoformat()
+    _seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
 
     start_date: Optional[datetime] = Field(
-        __seven_days_ago__, description="Start date for filtering messages"
+      _seven_days_ago, description="Start date for filtering messages"
     )
     end_date: Optional[datetime] = Field(
         datetime.now().isoformat(), description="End date for filtering messages"

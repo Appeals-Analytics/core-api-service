@@ -9,6 +9,7 @@ from src.api.dashboard.schemas import (
     SentimentAggregationQuery,
     CategoriesAggregationQuery,
 )
+from datetime import datetime
 
 
 class MessageRepository:
@@ -17,6 +18,8 @@ class MessageRepository:
 
     async def create_message(self, message_data: dict) -> Message:
         """Create a new message in the database"""
+        if "created_at" not in message_data or message_data["created_at"] is None:
+            message_data["created_at"] = datetime.utcnow()
         message = Message(**message_data)
         self.db.add(message)
         await self.db.commit()

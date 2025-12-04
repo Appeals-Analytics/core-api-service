@@ -46,7 +46,6 @@ class FileProcessor(ABC):
         valid_records = []
         
         records = df.to_dicts()
-        self.report.total_rows = len(records)
         
         for idx, record in enumerate(records, start=1):
             try:
@@ -63,24 +62,13 @@ class FileProcessor(ABC):
                     validated.timestamp = datetime.now().isoformat()
                 
                 valid_records.append(validated)
-                self.report.valid_rows += 1
                 
             except ValidationError as e:
                 for error in e.errors():
                     field = '.'.join(str(loc) for loc in error['loc'])
-                    self.report.add_error(
-                        row_number=idx,
-                        field=field,
-                        error=error['msg'],
-                        row_data=record
-                    )
+                    print(f"Ошибка валидации в строке {idx}, поле '{field}': {error['msg']}")
             except Exception as e:
-                self.report.add_error(
-                    row_number=idx,
-                    field='unknown',
-                    error=str(e),
-                    row_data=record
-                )
+                print(f"Ошибка при обработке строки {idx}: {e}")
         
         return valid_records
     
@@ -101,11 +89,9 @@ class FileProcessor(ABC):
                 "metadata": {
                     "source_file": str(self.file_path),
                     "processed_at": datetime.now().isoformat(),
-                    "validation_report": self.report.to_dict()
                 }
             }
             
-            self.report.print_summary()
             print("Обработка завершена успешно")
             
             return result
