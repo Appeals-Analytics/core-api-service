@@ -8,7 +8,7 @@ class MessageService:
     @classmethod
     async def get_message_by_id(cls, db: AsyncConnection, id: str) -> MessageResponse:
         message = await MessageRepository(db).get_message(id)
-        return MessageResponse(**message)
+        return MessageResponse.model_validate(message)
 
     @classmethod
     async def create_message(
@@ -16,14 +16,14 @@ class MessageService:
     ) -> MessageResponse:
         message_dict = message.model_dump()
         created_message = await MessageRepository(db).create_message(message_dict)
-        return MessageResponse(**created_message)
+        return MessageResponse.model_validate(created_message)
 
     @classmethod
     async def get_messages(
         self, db: AsyncConnection, params: MessageQueryFilter
     ) -> list[MessageResponse]:
         messages = await MessageRepository(db).get_messages(params)
-        return [MessageResponse(**msg) for msg in messages]
+        return [MessageResponse.model_validate(msg) for msg in messages]
 
     @classmethod
     async def delete_message(self, db: AsyncConnection, id: str) -> None:

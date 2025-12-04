@@ -1,11 +1,11 @@
 import json
 from typing import AsyncGenerator, Optional, Self
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer, TopicPartition
 from src.database.database import AsyncSessionLocal
 from src.api.message.service import MessageService
 from src.api.message.schemas import MessageCreate
 
-from src.services.kafka.config import kafka_settings
+from src.services import kafka_settings
 
 
 class KafkaService:
@@ -34,6 +34,8 @@ class KafkaService:
             "sasl_plain_username": kafka_settings.sasl_plain_username.get_secret_value(),
             "sasl_plain_password": kafka_settings.sasl_plain_password.get_secret_value(),
             "group_id": kafka_settings.consumer_group_id,
+            "auto_offset_reset": "earliest",
+            "enable_auto_commit": True,
             "value_deserializer": lambda v: json.loads(v.decode("utf-8")),
         }
 
@@ -44,7 +46,7 @@ class KafkaService:
         if not self.producer:
             raise RuntimeError("Producer not initialized. Call start_producer() first.")
 
-        result = await self.producer.send_and_wait(topic, message)
+        await self.producer.send_and_wait(topic, message)
 
     async def consume_messages(self: Self) -> AsyncGenerator[dict, None]:
         if not self.consumer:
@@ -59,15 +61,18 @@ class KafkaService:
             raise RuntimeError("Consumer not initialized. Call start_consumer() first.")
 
         async for message in self.consumer:
-            if not message.topic == kafka_settings.topic_in:
+            if message.topic != kafka_settings.topic_in:
                 continue
 
+            tp = TopicPartition(message.topic, message.partition)
             try:
                 message_data = json.loads(message.value)
                 async with AsyncSessionLocal() as session:
-                    service = MessageService(session)
                     msg_create = MessageCreate(**message_data)
-                    await service.create_message(msg_create)
+                    print(message_data)
+                    await MessageService.create_message(session, msg_create)
+                    
+                    await self.consumer.commit({tp: message.offset + 1})
             except Exception as e:
                 print(f"Error processing Kafka message: {e}")
 
