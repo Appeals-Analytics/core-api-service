@@ -8,19 +8,22 @@ files_router = APIRouter(prefix="/files", tags=["File"])
 
 @files_router.post("/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_file(file: UploadFile, background_tasks: BackgroundTasks):
-    validate_file(file=file)
+  validate_file(file=file)
 
-    saved_path = save_file(file=file)
+  saved_path = save_file(file=file)
 
-    background_tasks.add_task(FilesService.process_and_send_to_kafka, saved_path)
+  await FilesService.validate_file(saved_path)
 
-    return {"status": "processing"}
+  background_tasks.add_task(FilesService.process_and_send_to_kafka, saved_path)
+
+  return {"status": "processing"}
 
 
 @files_router.post("/multiple-upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_files(files: list[UploadFile], background_tasks: BackgroundTasks):
-    for file in files:
-        validate_file(file=file)
-        saved_path = save_file(file=file)
-        background_tasks.add_task(FilesService.process_and_send_to_kafka, saved_path)
-    return {"status": "processing"}
+  for file in files:
+    validate_file(file=file)
+    saved_path = save_file(file=file)
+    await FilesService.validate_file(saved_path)
+    background_tasks.add_task(FilesService.process_and_send_to_kafka, saved_path)
+  return {"status": "processing"}

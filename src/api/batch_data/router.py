@@ -12,12 +12,10 @@ BATCH_MAX_SIZE = 1000
 
 @batch_router.post("", status_code=status.HTTP_202_ACCEPTED)
 async def process_batch_data(data: List[AppealItem], background_tasks: BackgroundTasks):
-    if len(data) > BATCH_MAX_SIZE:
-        raise BATCH_TOO_LARGE_TO_PROCESSING
+  if len(data) > BATCH_MAX_SIZE:
+    raise BATCH_TOO_LARGE_TO_PROCESSING
 
-    json_data = [item.model_dump_json() for item in data]
+  json_data = [item.model_dump_json() for item in data]
 
-    background_tasks.add_task(
-        send_batch_to_kafka, topic=kafka_settings.topic_out, data=json_data
-    )
-    return {"status": "accepted", "count": len(data)}
+  background_tasks.add_task(send_batch_to_kafka, topic=kafka_settings.topic_out, data=json_data)
+  return {"status": "accepted", "count": len(data)}
