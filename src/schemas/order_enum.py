@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class OrderEnum(Enum):
-    ASC = "asc"
-    DESC = "desc"
+  ASC = "asc"
+  DESC = "desc"

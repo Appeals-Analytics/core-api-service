@@ -11,12 +11,15 @@ COPY . .
 
 FROM python:3.12-slim-trixie
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 RUN useradd --create-home --shell /bin/bash appuser
 USER appuser
 WORKDIR /home/appuser/app
 
 COPY --from=builder /app/ ./
 
-ENV PATH="/home/appuser/app/venv/bin:$PATH"
+ENV PATH="/home/appuser/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
-CMD ["uv", "run", "src/main.py"]
+CMD ["uv", "run", "main.py"]
