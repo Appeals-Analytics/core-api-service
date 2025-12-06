@@ -14,3 +14,19 @@ dependencies = [
     "sqlalchemy>=2.0.44",
     "uvicorn>=0.38.0",
 ]
+
+[tool.ruff]
+exclude = [".git", ".venv", ".vscode", "__pypackages__", "venv"]
+
+line-length = 102
+indent-width = 2
+
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+indent-style = "space"
