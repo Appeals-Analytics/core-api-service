@@ -102,11 +102,10 @@ class DashboardService:
       categories_to_show = LEVEL_1_TO_LEVEL_2.get(params.level1_category, [])
     else:
       categories_to_show = list(CategoryLevel2Enum)
-
     result = []
     for category in categories_to_show:
-      if category in data_map:
-        item = data_map[category]
+      if category.name in data_map:
+        item = data_map[category.name]
         emotions = {emotion: item.emotions.get(emotion.value, 0) for emotion in EmotionEnum}
         result.append(
           CategoryCountedItem(
