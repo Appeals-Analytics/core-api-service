@@ -21,6 +21,7 @@ from src.schemas import (
   CategoryLevel1Enum,
   CategoryLevel2Enum,
 )
+from src.schemas.order_enum import OrderEnum
 
 
 class DashboardService:
@@ -87,6 +88,7 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     return result
 
   @classmethod
@@ -102,6 +104,7 @@ class DashboardService:
       categories_to_show = LEVEL_1_TO_LEVEL_2.get(params.level1_category, [])
     else:
       categories_to_show = list(CategoryLevel2Enum)
+
     result = []
     for category in categories_to_show:
       if category.name in data_map:
@@ -122,4 +125,5 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     return result
