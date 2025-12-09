@@ -43,7 +43,7 @@ class MessageRepository:
     if params.category_level_2 is not None:
       query = query.filter(Message.category_level_2.contains([params.category_level_2]))
     if params.emotion_label is not None:
-      query = query.filter(Message.emotion_label == params.emotion_label)
+      query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.source is not None:
       query = query.filter(Message.source == params.source)
     if params.user_id is not None:
@@ -52,7 +52,7 @@ class MessageRepository:
       search_query = func.plainto_tsquery("simple", params.search)
       query = query.filter(func.to_tsvector("simple", Message.cleaned_text).op("@@")(search_query))
     if params.sentiment_label is not None:
-      query = query.filter(Message.sentiment_label == params.sentiment_label)
+      query = query.filter(Message.sentiment_label.in_(params.sentiment_label))
 
     result = await self.db.execute(query)
 
@@ -71,6 +71,10 @@ class MessageRepository:
       query = query.filter(Message.category_level_1 == params.level1_category)
     if params.level2_category is not None:
       query = query.filter(Message.category_level_2.contains([params.level2_category]))
+    if params.emotion_label is not None:
+      query = query.filter(Message.emotion_label.in_(params.emotion_label))
+    if params.sentiment_label is not None:
+      query = query.filter(Message.sentiment_label.in_(params.sentiment_label))
 
     query = query.group_by(Message.emotion_label)
 
@@ -90,6 +94,10 @@ class MessageRepository:
       query = query.filter(Message.category_level_1 == params.level1_category)
     if params.level2_category is not None:
       query = query.filter(Message.category_level_2.contains([params.level2_category]))
+    if params.emotion_label is not None:
+      query = query.filter(Message.emotion_label.in_(params.emotion_label))
+    if params.sentiment_label is not None:
+      query = query.filter(Message.sentiment_label.in_(params.sentiment_label))
 
     query = query.group_by(Message.sentiment_label)
 
