@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from src.schemas.order_enum import OrderEnum
-from src.schemas import CategoryLevel1Enum, CategoryLevel2Enum
+from src.schemas import CategoryLevel1Enum, CategoryLevel2Enum, EmotionEnum, SentimentEnum
 
 
 class BaseTimeQuery(BaseModel):
@@ -26,6 +26,8 @@ class EmotionsAggregationQeury(BaseTimeQuery):
   level2_category: Optional[CategoryLevel2Enum] = Field(
     None, description="Optional level2 category for get emtions"
   )
+  emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Filter by emotion labels")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Filter by sentiment labels")
 
 
 class SentimentAggregationQuery(BaseTimeQuery):
@@ -38,6 +40,8 @@ class SentimentAggregationQuery(BaseTimeQuery):
   level2_category: Optional[CategoryLevel2Enum] = Field(
     None, description="Optional level2 category for get sentiments"
   )
+  emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Filter by emotion labels")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Filter by sentiment labels")
 
 
 class CategoriesLevel1AggregationQuery(BaseTimeQuery, BaseOrderQuery):
@@ -61,6 +65,7 @@ LEVEL_1_TO_LEVEL_2 = {
     CategoryLevel2Enum.REGISTRATION,
     CategoryLevel2Enum.BAGGAGE_BEFORE_FLIGHT,
     CategoryLevel2Enum.DOCUMENTS,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.DEPARTURE_ARRIVAL: [
     CategoryLevel2Enum.FLIGHT_STATUS,
@@ -68,6 +73,7 @@ LEVEL_1_TO_LEVEL_2 = {
     CategoryLevel2Enum.FLIGHT_CANCELLATION,
     CategoryLevel2Enum.HOTEL_TRANSFER,
     CategoryLevel2Enum.BAGGAGE_SEARCH,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.ON_BOARD: [
     CategoryLevel2Enum.CABIN_SERVICE,
@@ -76,30 +82,36 @@ LEVEL_1_TO_LEVEL_2 = {
     CategoryLevel2Enum.CABIN_FOOD,
     CategoryLevel2Enum.CABIN_ENTERTAINMENT,
     CategoryLevel2Enum.CABIN_BAGGAGE,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.AFTER_FLIGHT: [
     CategoryLevel2Enum.TICKET_REFUND,
     CategoryLevel2Enum.TICKET_EXCHANGE,
     CategoryLevel2Enum.COMPENSATION,
     CategoryLevel2Enum.LOST_PROPERTY,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.LOYALTY_SALES: [
     CategoryLevel2Enum.LOYALTY_PROGRAM,
     CategoryLevel2Enum.PROMOTIONS_FARES,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.TECHNICAL_ISSUES: [
     CategoryLevel2Enum.WEBSITE_APP_ISSUES,
     CategoryLevel2Enum.BOT_ISSUES,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.FEEDBACK: [
     CategoryLevel2Enum.COMPLAINT,
     CategoryLevel2Enum.THANK_YOU,
     CategoryLevel2Enum.SUGGESTION,
     CategoryLevel2Enum.ESCALATION,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.SERVICE: [
     CategoryLevel2Enum.GREETING,
     CategoryLevel2Enum.FAREWELL,
+    CategoryLevel2Enum.OTHER,
   ],
   CategoryLevel1Enum.OTHER: [
     CategoryLevel2Enum.OTHER,

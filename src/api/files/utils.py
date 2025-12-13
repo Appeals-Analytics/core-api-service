@@ -14,7 +14,7 @@ def validate_file(*, file: UploadFile):
 
 
 def validate_file_extention(*, filename: str):
-  VALID_EXTENTIONS = ["xlsx", "csv", "json", "parquet"]
+  VALID_EXTENTIONS = ["xlsx", "csv", "json", "parquet", "xls"]
 
   file_extention = filename.split(".")[-1]
 

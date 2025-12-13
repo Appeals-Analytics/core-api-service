@@ -21,6 +21,7 @@ from src.schemas import (
   CategoryLevel1Enum,
   CategoryLevel2Enum,
 )
+from src.schemas.order_enum import OrderEnum
 
 
 class DashboardService:
@@ -87,6 +88,7 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     return result
 
   @classmethod
@@ -105,8 +107,8 @@ class DashboardService:
 
     result = []
     for category in categories_to_show:
-      if category in data_map:
-        item = data_map[category]
+      if category.name in data_map:
+        item = data_map[category.name]
         emotions = {emotion: item.emotions.get(emotion.value, 0) for emotion in EmotionEnum}
         result.append(
           CategoryCountedItem(
@@ -123,4 +125,5 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     return result
