@@ -1,0 +1,68 @@
+name: CI/CD - Core API Service
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  SERVICE_NAME: 'core-api'
+  IMAGE_NAME: 'core-api-image'
+  DOCKER_COMPOSE_PATH: '/home/vlolomironov/analytics/docker-compose.yml'
+  DOCKERFILE_PATH: './'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: self-hosted
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest
+
+      - name: 3. Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 4. Build and load Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.DOCKERFILE_PATH }}
+          file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 5. Deploy with Docker Compose
+        run: |
+          echo "Starting deployment..."
+          
+          export IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep -o -E '[a-z0-9]{7,}')
+          echo "Using Image Tag: $IMAGE_TAG"
+          
+          docker compose -f ${{ env.DOCKER_COMPOSE_PATH }} up -d --no-deps --remove-orphans ${{ env.SERVICE_NAME }}
+          
+          echo "Deployment command executed."
+
+      - name: 6. Clean up old images
+        if: always()
+        run: |
+          docker image prune -f
+          echo "Old images cleaned up."
