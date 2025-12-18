@@ -96,7 +96,7 @@ class DashboardService:
     cls, db: AsyncConnection, params: CategoriesLevel2AggregationQuery
   ) -> CategoriesAggregatedData:
     data = await MessageRepository(db).get_aggregated_messages_by_category_level2(params)
-    print(data(len))
+    print(len(data))
     data_map = {item.label: item for item in data}
     total_count = data[0].total_count if data else 0
     print(data_map)
