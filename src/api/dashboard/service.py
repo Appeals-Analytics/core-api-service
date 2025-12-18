@@ -21,6 +21,7 @@ from src.schemas import (
   CategoryLevel1Enum,
   CategoryLevel2Enum,
 )
+from src.schemas.order_enum import OrderEnum
 
 
 class DashboardService:
@@ -87,6 +88,7 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     return result
 
   @classmethod
@@ -94,10 +96,10 @@ class DashboardService:
     cls, db: AsyncConnection, params: CategoriesLevel2AggregationQuery
   ) -> CategoriesAggregatedData:
     data = await MessageRepository(db).get_aggregated_messages_by_category_level2(params)
-
+    print(data(len))
     data_map = {item.label: item for item in data}
     total_count = data[0].total_count if data else 0
-
+    print(data_map)
     if params.level1_category:
       categories_to_show = LEVEL_1_TO_LEVEL_2.get(params.level1_category, [])
     else:
@@ -105,8 +107,8 @@ class DashboardService:
 
     result = []
     for category in categories_to_show:
-      if category in data_map:
-        item = data_map[category]
+      if category.name in data_map:
+        item = data_map[category.name]
         emotions = {emotion: item.emotions.get(emotion.value, 0) for emotion in EmotionEnum}
         result.append(
           CategoryCountedItem(
@@ -123,4 +125,6 @@ class DashboardService:
           )
         )
 
+    result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
+    print(len(result))
     return result

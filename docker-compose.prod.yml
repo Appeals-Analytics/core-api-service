@@ -2,7 +2,7 @@ services:
 
   kafka:
     image: apache/kafka:3.9.1
-
+    restart: always
     container_name: kafka
     ports:
       - "9092:9092"
@@ -86,7 +86,24 @@ services:
         condition: service_healthy
     ports:
       - "3001:3001"
+    volumes:
+      - models_data:/home/appuser/.cache/huggingface
+
+  dashboard:
+    container_name: dashboard-service
+    env_file:
+      - ../dashboard-service/.env
+    image: dashboard-service
+    restart: always
+    build:
+      context: ../dashboard-service
+      dockerfile: Dockerfile
+    depends_on:
+      - core-api
+    ports:
+      - "8501:8501"
 
 volumes:
   kafka_data:
   pg_data:
+  models_data:

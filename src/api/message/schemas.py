@@ -89,8 +89,8 @@ class MessageQueryFilter(BaseModel):
   end_date: Optional[datetime] = Field(
     datetime.now().isoformat(), description="End date for filtering messages"
   )
-  sentiment_label: Optional[SentimentEnum] = Field(None, description="Sentiment label to filter by")
-  emotion_label: Optional[EmotionEnum] = Field(None, description="Emotion label to filter by")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Sentiment labels to filter by")
+  emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Emotion labels to filter by")
   category_level_1: Optional[CategoryLevel1Enum] = Field(
     None, description="Primary category to filter by"
   )
