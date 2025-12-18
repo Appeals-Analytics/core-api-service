@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  SERVICE_NAME: 'core-api-service'
+  SERVICE_NAME: 'core-api'
   IMAGE_NAME: 'core-api-image'
   DOCKER_COMPOSE_PATH: '/home/vlolomironov/analytics/docker-compose.yml'
   DOCKERFILE_PATH: './'
