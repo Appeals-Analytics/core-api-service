@@ -47,6 +47,8 @@ class Message(Base):
 
   category_level_2: Mapped[list[CategoryLevel2Enum]] = mapped_column(ARRAY(category_level_2_enum))
 
+  content_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=True)
+
   __table_args__ = (
     Index("ix_messages_cat_level_2", category_level_2, postgresql_using="gin"),
     Index(

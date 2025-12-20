@@ -89,6 +89,20 @@ class KafkaService:
 
     await self.producer.send_and_wait(topic, message)
 
+  async def send_messages(self: Self, topic: str, messages: list[str]):
+    """Send multiple messages to Kafka efficiently"""
+    if not self.producer:
+      raise RuntimeError("Producer not initialized. Call start_producer() first.")
+
+    for message in messages:
+        # If message is already a string (JSON), we might want to bypass serializer or pass it as is if serializer handles it.
+        # But serializer is fixed to json.dumps.
+        # If we pass a dict, it works.
+        # If FilesService passes strings, we should probably parse them back or change FilesService to pass dicts.
+        await self.producer.send(topic, message)
+    
+    await self.producer.flush()
+
   async def consume_messages(self: Self) -> AsyncGenerator[dict, None]:
     if not self.consumer:
       raise RuntimeError("Consumer not initialized. Call start_consumer() first.")

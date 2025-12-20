@@ -8,6 +8,8 @@ from src.services import (
   validate_file_structure as validate_file_structure_sync,
 )
 from src.app.exceptions import BAD_REQUEST_EXCEPTION
+from src.database.database import AsyncSessionLocal
+from src.database.repositories.message import MessageRepository
 
 
 class FilesService:
@@ -28,6 +30,28 @@ class FilesService:
     os.remove(file_path)
 
     data = result["data"]
-    messages = [record.model_dump_json() for record in data]
-    for message in messages:
-      await kafka_service.send_message(kafka_settings.topic_out, message)
+    
+    batch_size = 1000
+    existing_hashes = set()
+    
+    hashes = [record.content_hash for record in data if record.content_hash]
+    
+    if hashes:
+      async with AsyncSessionLocal() as session:
+        repo = MessageRepository(session)
+        for i in range(0, len(hashes), batch_size):
+          chunk = hashes[i:i + batch_size]
+          chunk_existing = await repo.get_existing_hashes(chunk)
+          existing_hashes.update(chunk_existing)
+      
+      data = [record for record in data if record.content_hash not in existing_hashes]
+
+    if not data:
+      return
+
+    kafka_batch_size = 2000
+    messages = [record.model_dump() for record in data]
+    
+    for i in range(0, len(messages), kafka_batch_size):
+      chunk = messages[i:i + kafka_batch_size]
+      await kafka_service.send_messages(kafka_settings.topic_out, chunk)

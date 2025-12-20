@@ -165,3 +165,12 @@ class MessageRepository:
     """Delete message by ID"""
     await self.db.execute(delete(Message).where(Message.id == id))
     await self.db.commit()
+
+  async def get_existing_hashes(self, hashes: list[str]) -> set[str]:
+    """Get existing content hashes from the database"""
+    if not hashes:
+      return set()
+    
+    query = select(Message.content_hash).where(Message.content_hash.in_(hashes))
+    result = await self.db.execute(query)
+    return set(result.scalars().all())

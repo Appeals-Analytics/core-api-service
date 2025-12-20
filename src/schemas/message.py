@@ -8,6 +8,7 @@ class MessageSchema(BaseModel):
   user_id: Optional[str] = Field(None, description="ID пользователя")
   external_id: Optional[str] = Field(None, description="Внешний ID")
   timestamp: Optional[str] = Field(None, description="Время в ISO 8601")
+  content_hash: Optional[str] = Field(None, description="SHA-256 hash of timestamp + text")
 
   @field_validator("text")
   @classmethod

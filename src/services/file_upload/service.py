@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Any
 from datetime import datetime
+import hashlib
 
 from pydantic import ValidationError
 from src.schemas import MessageSchema
@@ -73,6 +74,7 @@ class FileProcessor(ABC):
 
         records = df.to_dicts()
         valid_records = []
+        seen_hashes = set()
         
         for record in records:
             clean_record = {k: (v if v is not None else None) for k, v in record.items()}
@@ -82,6 +84,16 @@ class FileProcessor(ABC):
             
             if not clean_record.get("timestamp"):
                 clean_record["timestamp"] = datetime.now().isoformat()
+
+            text_lower = (clean_record.get("text") or "").lower()
+            timestamp = clean_record.get("timestamp")
+            content_hash = hashlib.sha256(f"{timestamp}_{text_lower}".encode()).hexdigest()
+
+            if content_hash in seen_hashes:
+                continue
+            
+            seen_hashes.add(content_hash)
+            clean_record["content_hash"] = content_hash
                 
             valid_records.append(MessageSchema(**clean_record))
 
