@@ -105,6 +105,33 @@ class FileProcessor(ABC):
             },
         }
 
+    def process_batch(self, df_slice: pl.DataFrame) -> List[MessageSchema]:
+        """Process a batch of data without full validation (assumes structure is valid)"""
+        records = df_slice.to_dicts()
+        valid_records = []
+        
+        for record in records:
+            clean_record = {k: (v if v is not None else None) for k, v in record.items()}
+            
+            if isinstance(clean_record.get("timestamp"), datetime):
+                clean_record["timestamp"] = clean_record["timestamp"].isoformat()
+            
+            if not clean_record.get("timestamp"):
+                clean_record["timestamp"] = datetime.now().isoformat()
+
+            text_lower = (clean_record.get("text") or "").lower()
+            timestamp = clean_record.get("timestamp")
+            content_hash = hashlib.sha256(f"{timestamp}_{text_lower}".encode()).hexdigest()
+            
+            clean_record["content_hash"] = content_hash
+            
+            try:
+                valid_records.append(MessageSchema(**clean_record))
+            except ValidationError:
+                continue
+                
+        return valid_records
+
 
 class CSVProcessor(FileProcessor):
     def read_data(self) -> pl.DataFrame:
