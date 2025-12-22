@@ -208,8 +208,8 @@ class MessageRepository:
       trunc_date,
       Message.emotion_label,
       func.count(Message.id).label("count"),
-      func.avg(Message.sentiment_score * sentiment_weight).label("avg_sentiment"),
-      func.avg(Message.emotion_score * emotion_weight).label("avg_confidence"),
+      func.cast(func.avg(sentiment_weight), sqlalchemy.Float).label("avg_sentiment"),
+      func.cast(func.avg(emotion_weight), sqlalchemy.Float).label("avg_confidence"),
     ).filter(between(Message.event_date, params.start_time, params.end_time))
 
     if params.level1_category is not None:
