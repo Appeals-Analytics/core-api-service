@@ -1,8 +1,9 @@
 from src.database.models.message import Message
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, between
+from sqlalchemy import select, delete, func, between, case
 import sqlalchemy
 from src.schemas.order_enum import OrderEnum
+from src.schemas import SentimentEnum, EmotionEnum
 from src.api.message.schemas import MessageQueryFilter
 from src.api.dashboard.schemas import (
   EmotionsAggregationQeury,
@@ -180,12 +181,35 @@ class MessageRepository:
     """Get aggregated emotion data grouped by time intervals"""
     trunc_date = func.date_trunc(params.granularity.value, Message.event_date).label("period")
 
+    sentiment_weight = case(
+      (Message.sentiment_label == SentimentEnum.POSITIVE, 1),
+      (Message.sentiment_label == SentimentEnum.NEGATIVE, -1),
+      else_=0,
+    )
+
+    emotion_weight = case(
+      (Message.emotion_label.in_([EmotionEnum.JOY, EmotionEnum.INTEREST]), 1),
+      (
+        Message.emotion_label.in_(
+          [
+            EmotionEnum.ANGER,
+            EmotionEnum.FEAR,
+            EmotionEnum.DISGUST,
+            EmotionEnum.SADNESS,
+            EmotionEnum.GUILT,
+          ]
+        ),
+        -1,
+      ),
+      else_=0,
+    )
+
     query = select(
       trunc_date,
       Message.emotion_label,
       func.count(Message.id).label("count"),
-      func.avg(Message.sentiment_score).label("avg_sentiment"),
-      func.avg(Message.emotion_score).label("avg_confidence"),
+      func.avg(Message.sentiment_score * sentiment_weight).label("avg_sentiment"),
+      func.avg(Message.emotion_score * emotion_weight).label("avg_confidence"),
     ).filter(between(Message.event_date, params.start_time, params.end_time))
 
     if params.level1_category is not None:
