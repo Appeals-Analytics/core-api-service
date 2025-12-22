@@ -213,8 +213,8 @@ class DashboardService:
         response_data.append(EmotionDynamicsPeriod(
           period_start=period,
           total_count=total,
-          average_sentiment_score=avg_sentiment,
-          average_emotion_confidence=avg_confidence,
+          average_sentiment_score=avg_confidence,
+          average_emotion_confidence=avg_sentiment,
           breakdown=breakdown
         ))
       else:
