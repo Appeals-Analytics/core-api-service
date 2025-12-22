@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Optional, List
 from src.schemas.order_enum import OrderEnum
-from src.schemas import CategoryLevel1Enum, CategoryLevel2Enum, EmotionEnum, SentimentEnum
+from src.schemas import CategoryLevel1Enum, CategoryLevel2Enum, EmotionEnum, SentimentEnum, GranularityEnum
 
 
 class BaseTimeQuery(BaseModel):
@@ -56,6 +56,16 @@ class CategoriesLevel2AggregationQuery(BaseTimeQuery, BaseOrderQuery):
   level1_category: CategoryLevel1Enum = Field(
     CategoryLevel1Enum.FEEDBACK, description="Optional category"
   )
+
+
+class EmotionDynamicsQuery(BaseTimeQuery):
+  granularity: GranularityEnum = Field(GranularityEnum.DAY, description="Time bucket granularity")
+  level1_category: Optional[CategoryLevel1Enum] = Field(None)
+  level2_category: Optional[CategoryLevel2Enum] = Field(None)
+  emotion_label: Optional[List[EmotionEnum]] = Field(None)
+  sentiment_label: Optional[List[SentimentEnum]] = Field(None)
+  source: Optional[str] = Field(None)
+  user_id: Optional[str] = Field(None)
 
 
 LEVEL_1_TO_LEVEL_2 = {

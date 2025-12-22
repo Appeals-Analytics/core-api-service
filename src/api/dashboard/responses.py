@@ -10,6 +10,7 @@ from src.schemas import (
 )
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
+from datetime import datetime
 
 
 class EmotionCountedItem(BaseModel):
@@ -64,3 +65,28 @@ CategoriesAggregatedData = List[CategoryCountedItem]
 EmotionsAggregatedData = List[EmotionCountedItem]
 
 SentimentsAggregatedData = List[SentimentCountedItem]
+
+
+class EmotionDynamicsItem(BaseModel):
+  count: int
+  percentage: float
+  label_ru: str
+
+
+class EmotionDynamicsPeriod(BaseModel):
+  period_start: datetime
+  total_count: int
+  average_sentiment_score: float
+  average_emotion_confidence: float
+  breakdown: dict[str, EmotionDynamicsItem]
+
+
+class EmotionDynamicsMeta(BaseModel):
+  granularity: str
+  total_periods: int
+
+
+class EmotionDynamicsResponse(BaseModel):
+  meta: EmotionDynamicsMeta
+  data: List[EmotionDynamicsPeriod]
+

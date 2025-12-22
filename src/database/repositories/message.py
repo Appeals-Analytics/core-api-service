@@ -8,7 +8,8 @@ from src.api.dashboard.schemas import (
   EmotionsAggregationQeury,
   SentimentAggregationQuery,
   CategoriesLevel1AggregationQuery,
-  CategoriesLevel2AggregationQuery
+  CategoriesLevel2AggregationQuery,
+  EmotionDynamicsQuery
 )
 from datetime import datetime
 
@@ -174,3 +175,34 @@ class MessageRepository:
     query = select(Message.content_hash).where(Message.content_hash.in_(hashes))
     result = await self.db.execute(query)
     return set(result.scalars().all())
+
+  async def get_emotion_dynamics(self, params: EmotionDynamicsQuery):
+    """Get aggregated emotion data grouped by time intervals"""
+    trunc_date = func.date_trunc(params.granularity.value, Message.event_date).label("period")
+
+    query = select(
+      trunc_date,
+      Message.emotion_label,
+      func.count(Message.id).label("count"),
+      func.avg(Message.sentiment_score).label("avg_sentiment"),
+      func.avg(Message.emotion_score).label("avg_confidence"),
+    ).filter(between(Message.event_date, params.start_time, params.end_time))
+
+    if params.level1_category is not None:
+      query = query.filter(Message.category_level_1 == params.level1_category)
+    if params.level2_category is not None:
+      query = query.filter(Message.category_level_2.contains([params.level2_category]))
+    if params.emotion_label is not None:
+      query = query.filter(Message.emotion_label.in_(params.emotion_label))
+    if params.sentiment_label is not None:
+      query = query.filter(Message.sentiment_label.in_(params.sentiment_label))
+    if params.source is not None:
+      query = query.filter(Message.source == params.source)
+    if params.user_id is not None:
+      query = query.filter(Message.user_id == params.user_id)
+
+    query = query.group_by(trunc_date, Message.emotion_label).order_by(trunc_date.asc())
+
+    result = await self.db.execute(query)
+    return result.mappings().all()
+

@@ -2,6 +2,7 @@ from .emotion_enum import EmotionEnum, EMOTION_TRANSLATIONS
 from .sentiment_enum import SentimentEnum, SENTIMENT_TRANSLATIONS
 from .category_level_1_enum import CategoryLevel1Enum, CATEGORY_LEVEL_1_TRANSLATIONS
 from .category_level_2_enum import CategoryLevel2Enum, CATEGORY_LEVEL_2_TRANSLATIONS
+from .granularity_enum import GranularityEnum
 from .message import MessageSchema
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
   "CATEGORY_LEVEL_1_TRANSLATIONS",
   "CategoryLevel2Enum",
   "CATEGORY_LEVEL_2_TRANSLATIONS",
+  "GranularityEnum",
   "MessageSchema",
 ]

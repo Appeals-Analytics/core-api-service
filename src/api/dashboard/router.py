@@ -7,12 +7,14 @@ from .schemas import (
   EmotionsAggregationQeury,
   SentimentAggregationQuery,
   CategoriesLevel1AggregationQuery,
-  CategoriesLevel2AggregationQuery
+  CategoriesLevel2AggregationQuery,
+  EmotionDynamicsQuery
 )
 from .responses import (
   SentimentsAggregatedData,
   EmotionsAggregatedData,
   CategoriesAggregatedData,
+  EmotionDynamicsResponse
 )
 
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -48,3 +50,12 @@ async def get_level2_categories_aggregated(
   db: AsyncSession = Depends(get_db),
 ):
   return await DashboardService.get_aggregated_level_2_categories(db, params)
+
+
+@dashboard_router.get(path="/emotions/dynamics", response_model=EmotionDynamicsResponse)
+async def get_emotion_dynamics(
+  params: Annotated[EmotionDynamicsQuery, Query()],
+  db: AsyncSession = Depends(get_db),
+):
+  return await DashboardService.get_emotion_dynamics(db, params)
+

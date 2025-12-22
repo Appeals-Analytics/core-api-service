@@ -5,6 +5,7 @@ from .schemas import (
   SentimentAggregationQuery,
   CategoriesLevel1AggregationQuery,
   CategoriesLevel2AggregationQuery,
+  EmotionDynamicsQuery,
   LEVEL_1_TO_LEVEL_2,
 )
 from .responses import (
@@ -14,14 +15,21 @@ from .responses import (
   EmotionCountedItem,
   SentimentCountedItem,
   CategoryCountedItem,
+  EmotionDynamicsResponse,
+  EmotionDynamicsPeriod,
+  EmotionDynamicsItem,
+  EmotionDynamicsMeta,
 )
 from src.schemas import (
   EmotionEnum,
   SentimentEnum,
   CategoryLevel1Enum,
   CategoryLevel2Enum,
+  GranularityEnum,
+  EMOTION_TRANSLATIONS,
 )
 from src.schemas.order_enum import OrderEnum
+from datetime import timedelta
 
 
 class DashboardService:
@@ -128,3 +136,101 @@ class DashboardService:
     result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
     print(len(result))
     return result
+
+  @classmethod
+  async def get_emotion_dynamics(
+    cls, db: AsyncConnection, params: EmotionDynamicsQuery
+  ) -> EmotionDynamicsResponse:
+    raw_data = await MessageRepository(db).get_emotion_dynamics(params)
+
+    grouped_data = {}
+    for row in raw_data:
+      period = row.period
+      if period not in grouped_data:
+        grouped_data[period] = {
+          "total_count": 0,
+          "weighted_sentiment": 0.0,
+          "weighted_confidence": 0.0,
+          "breakdown": {}
+        }
+      
+      count = row.count
+      grouped_data[period]["total_count"] += count
+      grouped_data[period]["weighted_sentiment"] += row.avg_sentiment * count
+      grouped_data[period]["weighted_confidence"] += row.avg_confidence * count
+      
+      grouped_data[period]["breakdown"][row.emotion_label] = {
+        "count": count,
+        "label_ru": EMOTION_TRANSLATIONS.get(row.emotion_label, row.emotion_label.value)
+      }
+
+    def align_date(dt, granularity):
+      if granularity == GranularityEnum.HOUR:
+        return dt.replace(minute=0, second=0, microsecond=0)
+      elif granularity == GranularityEnum.DAY:
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+      elif granularity == GranularityEnum.WEEK:
+        return (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+      elif granularity == GranularityEnum.MONTH:
+        return dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+      return dt
+
+    aligned_start = align_date(params.start_time, params.granularity)
+    aligned_end = align_date(params.end_time, params.granularity)
+    
+    periods = []
+    curr = aligned_start
+    while curr <= aligned_end:
+      periods.append(curr)
+      if params.granularity == GranularityEnum.HOUR:
+        curr += timedelta(hours=1)
+      elif params.granularity == GranularityEnum.DAY:
+        curr += timedelta(days=1)
+      elif params.granularity == GranularityEnum.WEEK:
+        curr += timedelta(weeks=1)
+      elif params.granularity == GranularityEnum.MONTH:
+        if curr.month == 12:
+          curr = curr.replace(year=curr.year + 1, month=1)
+        else:
+          curr = curr.replace(month=curr.month + 1)
+
+    response_data = []
+    for period in periods:
+      data = grouped_data.get(period)
+      if data:
+        total = data["total_count"]
+        avg_sentiment = data["weighted_sentiment"] / total if total > 0 else 0
+        avg_confidence = data["weighted_confidence"] / total if total > 0 else 0
+        
+        breakdown = {}
+        for emotion, info in data["breakdown"].items():
+          breakdown[emotion.value] = EmotionDynamicsItem(
+            count=info["count"],
+            percentage=(info["count"] / total) * 100 if total > 0 else 0,
+            label_ru=info["label_ru"]
+          )
+        
+        response_data.append(EmotionDynamicsPeriod(
+          period_start=period,
+          total_count=total,
+          average_sentiment_score=avg_sentiment,
+          average_emotion_confidence=avg_confidence,
+          breakdown=breakdown
+        ))
+      else:
+        response_data.append(EmotionDynamicsPeriod(
+          period_start=period,
+          total_count=0,
+          average_sentiment_score=0,
+          average_emotion_confidence=0,
+          breakdown={}
+        ))
+            
+    return EmotionDynamicsResponse(
+      meta=EmotionDynamicsMeta(
+        granularity=params.granularity.value,
+        total_periods=len(response_data)
+      ),
+      data=response_data
+    )
+
