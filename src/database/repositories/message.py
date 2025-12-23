@@ -13,7 +13,7 @@ from src.api.dashboard.schemas import (
   EmotionDynamicsQuery
 )
 from datetime import datetime
-
+import logging
 
 class MessageRepository:
   def __init__(self, db: AsyncSession):
@@ -40,7 +40,7 @@ class MessageRepository:
       between(Message.event_date, params.start_date, params.end_date)
     )
     
-    print(params.category_level_2)
+    logging.info(f"Category level 2 {params.category_level_2}")
 
     if params.category_level_1 is not None:
       query = query.filter(Message.category_level_1 == params.category_level_1)

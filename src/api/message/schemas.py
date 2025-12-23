@@ -94,7 +94,7 @@ class MessageQueryFilter(BaseModel):
   category_level_1: Optional[CategoryLevel1Enum] = Field(
     None, description="Primary category to filter by"
   )
-  category_level_2: Optional[List[CategoryLevel2Enum]] = Field(
+  category_level_2: Optional[CategoryLevel2Enum] = Field(
     None, description="Secondary category to filter by"
   )
   user_id: Optional[str] = Field(None, description="User ID to filter by")
