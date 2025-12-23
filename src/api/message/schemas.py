@@ -81,13 +81,13 @@ class MessageCreate(BaseModel):
 
 
 class MessageQueryFilter(BaseModel):
-  _seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
-
   start_date: Optional[datetime] = Field(
-    _seven_days_ago, description="Start date for filtering messages"
+    default_factory=lambda: to_naive_utc(datetime.now(timezone.utc) - timedelta(days=7)),
+    description="Start date for filtering messages"
   )
   end_date: Optional[datetime] = Field(
-    datetime.now().isoformat(), description="End date for filtering messages"
+    default_factory=lambda: to_naive_utc(datetime.now(timezone.utc)),
+    description="End date for filtering messages"
   )
   sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Sentiment labels to filter by")
   emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Emotion labels to filter by")

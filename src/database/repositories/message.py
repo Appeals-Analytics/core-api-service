@@ -45,7 +45,7 @@ class MessageRepository:
     if params.category_level_1 is not None:
       query = query.filter(Message.category_level_1 == params.category_level_1)
     if params.category_level_2:
-      query = query.filter(Message.category_level_2.contains(params.category_level_2))
+      query = query.filter(Message.category_level_2.contains([params.category_level_2]))
     if params.emotion_label is not None:
       query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.source is not None:
