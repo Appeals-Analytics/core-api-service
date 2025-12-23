@@ -22,4 +22,4 @@ COPY --from=builder /app/ ./
 ENV PATH="/home/appuser/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-CMD ["uv run main.py"]
+CMD ["/bin/bash", "-c", "uv run alembic upgrade head && uv run main.py"]
