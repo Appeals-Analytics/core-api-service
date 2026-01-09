@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class SentimentEnum(Enum):
+class SentimentEnum(str, Enum):
   POSITIVE = "positive"
   NEGATIVE = "negative"
   NEUTRAL = "neutral"

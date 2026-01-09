@@ -29,7 +29,7 @@ from src.schemas import (
   EMOTION_TRANSLATIONS,
 )
 from src.schemas.order_enum import OrderEnum
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 
 
 class DashboardService:
@@ -104,10 +104,10 @@ class DashboardService:
     cls, db: AsyncConnection, params: CategoriesLevel2AggregationQuery
   ) -> CategoriesAggregatedData:
     data = await MessageRepository(db).get_aggregated_messages_by_category_level2(params)
-    print(len(data))
+
     data_map = {item.label: item for item in data}
     total_count = data[0].total_count if data else 0
-    print(data_map)
+
     if params.level1_category:
       categories_to_show = LEVEL_1_TO_LEVEL_2.get(params.level1_category, [])
     else:
@@ -115,8 +115,10 @@ class DashboardService:
 
     result = []
     for category in categories_to_show:
-      if category.name in data_map:
-        item = data_map[category.name]
+      key = category.value if hasattr(category, "value") else str(category)
+
+      if key in data_map:
+        item = data_map[key]
         emotions = {emotion: item.emotions.get(emotion.value, 0) for emotion in EmotionEnum}
         result.append(
           CategoryCountedItem(
@@ -134,7 +136,6 @@ class DashboardService:
         )
 
     result.sort(key=lambda x: x.count, reverse=params.order_by == OrderEnum.DESC)
-    print(len(result))
     return result
 
   @classmethod
@@ -146,22 +147,30 @@ class DashboardService:
     grouped_data = {}
     for row in raw_data:
       period = row.period
+
+      if isinstance(period, datetime):
+        if period.tzinfo:
+          period = period.replace(tzinfo=None)
+      elif isinstance(period, date):
+        period = datetime.combine(period, datetime.min.time())
+
       if period not in grouped_data:
         grouped_data[period] = {
           "total_count": 0,
           "weighted_sentiment": 0.0,
           "weighted_confidence": 0.0,
-          "breakdown": {}
+          "breakdown": {},
         }
-      
+
       count = row.count
       grouped_data[period]["total_count"] += count
       grouped_data[period]["weighted_sentiment"] += row.avg_sentiment * count
       grouped_data[period]["weighted_confidence"] += row.avg_confidence * count
-      
+
+      label_val = getattr(row.emotion_label, "value", str(row.emotion_label))
       grouped_data[period]["breakdown"][row.emotion_label] = {
         "count": count,
-        "label_ru": EMOTION_TRANSLATIONS.get(row.emotion_label, row.emotion_label.value)
+        "label_ru": EMOTION_TRANSLATIONS.get(row.emotion_label, label_val),
       }
 
     def align_date(dt, granularity):
@@ -177,7 +186,7 @@ class DashboardService:
 
     aligned_start = align_date(params.start_time, params.granularity)
     aligned_end = align_date(params.end_time, params.granularity)
-    
+
     periods = []
     curr = aligned_start
     while curr <= aligned_end:
@@ -201,36 +210,39 @@ class DashboardService:
         total = data["total_count"]
         avg_sentiment = data["weighted_sentiment"] / total if total > 0 else 0
         avg_confidence = data["weighted_confidence"] / total if total > 0 else 0
-        
+
         breakdown = {}
         for emotion, info in data["breakdown"].items():
-          breakdown[emotion.value] = EmotionDynamicsItem(
+          emotion_val = getattr(emotion, "value", str(emotion))
+          breakdown[emotion_val] = EmotionDynamicsItem(
             count=info["count"],
             percentage=(info["count"] / total) * 100 if total > 0 else 0,
-            label_ru=info["label_ru"]
+            label_ru=info["label_ru"],
           )
-        
-        response_data.append(EmotionDynamicsPeriod(
-          period_start=period,
-          total_count=total,
-          average_sentiment_score=avg_confidence,
-          average_emotion_confidence=avg_sentiment,
-          breakdown=breakdown
-        ))
+
+        response_data.append(
+          EmotionDynamicsPeriod(
+            period_start=period,
+            total_count=total,
+            average_sentiment_score=avg_confidence,
+            average_emotion_confidence=avg_sentiment,
+            breakdown=breakdown,
+          )
+        )
       else:
-        response_data.append(EmotionDynamicsPeriod(
-          period_start=period,
-          total_count=0,
-          average_sentiment_score=0,
-          average_emotion_confidence=0,
-          breakdown={}
-        ))
-            
+        response_data.append(
+          EmotionDynamicsPeriod(
+            period_start=period,
+            total_count=0,
+            average_sentiment_score=0,
+            average_emotion_confidence=0,
+            breakdown={},
+          )
+        )
+
     return EmotionDynamicsResponse(
       meta=EmotionDynamicsMeta(
-        granularity=params.granularity.value,
-        total_periods=len(response_data)
+        granularity=params.granularity.value, total_periods=len(response_data)
       ),
-      data=response_data
+      data=response_data,
     )
-

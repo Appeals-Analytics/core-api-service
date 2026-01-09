@@ -89,4 +89,3 @@ class EmotionDynamicsMeta(BaseModel):
 class EmotionDynamicsResponse(BaseModel):
   meta: EmotionDynamicsMeta
   data: List[EmotionDynamicsPeriod]
-

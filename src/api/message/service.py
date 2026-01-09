@@ -17,6 +17,10 @@ class MessageService:
     return MessageResponse.model_validate(created_message)
 
   @classmethod
+  async def create_messages_batch(cls, db: AsyncConnection, messages: list[dict]) -> None:
+    await MessageRepository(db).create_messages_batch(messages)
+
+  @classmethod
   async def get_messages(
     self, db: AsyncConnection, params: MessageQueryFilter
   ) -> list[MessageResponse]:

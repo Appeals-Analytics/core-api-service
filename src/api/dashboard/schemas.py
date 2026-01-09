@@ -2,7 +2,13 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Optional, List
 from src.schemas.order_enum import OrderEnum
-from src.schemas import CategoryLevel1Enum, CategoryLevel2Enum, EmotionEnum, SentimentEnum, GranularityEnum
+from src.schemas import (
+  CategoryLevel1Enum,
+  CategoryLevel2Enum,
+  EmotionEnum,
+  SentimentEnum,
+  GranularityEnum,
+)
 
 
 class BaseTimeQuery(BaseModel):
@@ -27,7 +33,9 @@ class EmotionsAggregationQeury(BaseTimeQuery):
     None, description="Optional level2 category for get emtions"
   )
   emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Filter by emotion labels")
-  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Filter by sentiment labels")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(
+    None, description="Filter by sentiment labels"
+  )
 
 
 class SentimentAggregationQuery(BaseTimeQuery):
@@ -41,7 +49,9 @@ class SentimentAggregationQuery(BaseTimeQuery):
     None, description="Optional level2 category for get sentiments"
   )
   emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Filter by emotion labels")
-  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Filter by sentiment labels")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(
+    None, description="Filter by sentiment labels"
+  )
 
 
 class CategoriesLevel1AggregationQuery(BaseTimeQuery, BaseOrderQuery):

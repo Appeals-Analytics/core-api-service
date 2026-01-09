@@ -8,13 +8,13 @@ from .schemas import (
   SentimentAggregationQuery,
   CategoriesLevel1AggregationQuery,
   CategoriesLevel2AggregationQuery,
-  EmotionDynamicsQuery
+  EmotionDynamicsQuery,
 )
 from .responses import (
   SentimentsAggregatedData,
   EmotionsAggregatedData,
   CategoriesAggregatedData,
-  EmotionDynamicsResponse
+  EmotionDynamicsResponse,
 )
 
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -58,4 +58,3 @@ async def get_emotion_dynamics(
   db: AsyncSession = Depends(get_db),
 ):
   return await DashboardService.get_emotion_dynamics(db, params)
-

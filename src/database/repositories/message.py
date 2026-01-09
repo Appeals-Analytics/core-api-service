@@ -10,10 +10,9 @@ from src.api.dashboard.schemas import (
   SentimentAggregationQuery,
   CategoriesLevel1AggregationQuery,
   CategoriesLevel2AggregationQuery,
-  EmotionDynamicsQuery
+  EmotionDynamicsQuery,
 )
-from datetime import datetime
-import logging
+
 
 class MessageRepository:
   def __init__(self, db: AsyncSession):
@@ -21,31 +20,31 @@ class MessageRepository:
 
   async def create_message(self, message_data: dict) -> Message:
     """Create a new message in the database"""
-    if "created_at" not in message_data or message_data["created_at"] is None:
-      message_data["created_at"] = datetime.utcnow()
     message = Message(**message_data)
     self.db.add(message)
-    await self.db.commit()
+    await self.db.flush()
     return message
 
+  async def create_messages_batch(self, messages_data: list[dict]) -> None:
+    """Create multiple messages in the database efficiently"""
+    if not messages_data:
+      return
+
+    await self.db.execute(sqlalchemy.insert(Message), messages_data)
+
   async def get_message(self, message_id: str) -> Message | None:
-    """Get a message by ID"""
-    result = await self.db.execute(select(Message.__table__.columns).where(Message.id == message_id))
+    """Get a message by previous ID"""
+    result = await self.db.execute(select(Message).where(Message.id == message_id))
     return result.scalar_one_or_none()
 
   async def get_messages(self, params: MessageQueryFilter) -> list[Message]:
-    """Get messages with pagination"""
-
-    query = select(Message.__table__.columns).filter(
-      between(Message.event_date, params.start_date, params.end_date)
-    )
-    
-    logging.info(f"Category level 2 {params.category_level_2}")
+    """Get messages with filter"""
+    query = select(Message).filter(between(Message.event_date, params.start_date, params.end_date))
 
     if params.category_level_1 is not None:
       query = query.filter(Message.category_level_1 == params.category_level_1)
     if params.category_level_2:
-      query = query.filter(Message.category_level_2.contains([params.category_level_2]))
+      query = query.filter(func.has(Message.category_level_2, params.category_level_2))
     if params.emotion_label is not None:
       query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.source is not None:
@@ -53,18 +52,16 @@ class MessageRepository:
     if params.user_id is not None:
       query = query.filter(Message.user_id == params.user_id)
     if params.search is not None:
-      search_query = func.plainto_tsquery("simple", params.search)
-      query = query.filter(func.to_tsvector("simple", Message.cleaned_text).op("@@")(search_query))
+      query = query.filter(Message.cleaned_text.ilike(f"%{params.search}%"))
     if params.sentiment_label is not None:
       query = query.filter(Message.sentiment_label.in_(params.sentiment_label))
 
     result = await self.db.execute(query)
-
-    return result.mappings().all()
+    return result.scalars().all()
 
   async def get_aggregated_messages_by_emotion(self, params: EmotionsAggregationQeury):
     """Get count of messages grouped by emotion for a given period"""
-
+    # Note: Window functions like over() work in ClickHouse
     query = select(
       Message.emotion_label,
       func.count(Message.id).label("count"),
@@ -74,7 +71,7 @@ class MessageRepository:
     if params.level1_category is not None:
       query = query.filter(Message.category_level_1 == params.level1_category)
     if params.level2_category is not None:
-      query = query.filter(Message.category_level_2.contains([params.level2_category]))
+      query = query.filter(func.has(Message.category_level_2, params.level2_category))
     if params.emotion_label is not None:
       query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.sentiment_label is not None:
@@ -97,7 +94,7 @@ class MessageRepository:
     if params.level1_category is not None:
       query = query.filter(Message.category_level_1 == params.level1_category)
     if params.level2_category is not None:
-      query = query.filter(Message.category_level_2.contains([params.level2_category]))
+      query = query.filter(func.has(Message.category_level_2, params.level2_category))
     if params.emotion_label is not None:
       query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.sentiment_label is not None:
@@ -108,7 +105,9 @@ class MessageRepository:
     result = await self.db.execute(query)
     return result.mappings().all()
 
-  async def get_aggregated_messages_by_category_level1(self, params: CategoriesLevel1AggregationQuery):
+  async def get_aggregated_messages_by_category_level1(
+    self, params: CategoriesLevel1AggregationQuery
+  ):
     subq = (
       select(
         Message.category_level_1,
@@ -120,11 +119,15 @@ class MessageRepository:
       .subquery()
     )
 
+    # NOTE: mapFromArrays(groupArray(...), ...) approach for ClickHouse to simulate json_object_agg
     query = select(
       subq.c.category_level_1.label("label"),
       func.sum(subq.c.emotion_count).label("count"),
       func.sum(func.sum(subq.c.emotion_count)).over().label("total_count"),
-      func.json_object_agg(subq.c.emotion_label, subq.c.emotion_count).label("emotions"),
+      # Creates a Map(String, UInt64)
+      func.mapFromArrays(
+        func.groupArray(subq.c.emotion_label), func.groupArray(subq.c.emotion_count)
+      ).label("emotions"),
     ).group_by(subq.c.category_level_1)
 
     if params.order_by == OrderEnum.ASC:
@@ -134,18 +137,19 @@ class MessageRepository:
 
     result = await self.db.execute(query)
     return result.mappings().all()
-  
-  async def get_aggregated_messages_by_category_level2(self, params: CategoriesLevel2AggregationQuery):
-    
+
+  async def get_aggregated_messages_by_category_level2(
+    self, params: CategoriesLevel2AggregationQuery
+  ):
     subq = (
       select(
-        func.unnest(Message.category_level_2).label("level2"),
+        func.arrayJoin(Message.category_level_2).label("level2"),
         func.lower(func.cast(Message.emotion_label, sqlalchemy.String)).label("emotion_label"),
         func.count(Message.id).label("emotion_count"),
       )
       .filter(Message.category_level_1 == params.level1_category)
       .filter(between(Message.event_date, params.start_time, params.end_time))
-      .group_by(func.unnest(Message.category_level_2), Message.emotion_label)
+      .group_by(func.arrayJoin(Message.category_level_2), Message.emotion_label)
       .subquery()
     )
 
@@ -153,9 +157,11 @@ class MessageRepository:
       subq.c.level2.label("label"),
       func.sum(subq.c.emotion_count).label("count"),
       func.sum(func.sum(subq.c.emotion_count)).over().label("total_count"),
-      func.json_object_agg(subq.c.emotion_label, subq.c.emotion_count).label("emotions"),
+      func.mapFromArrays(
+        func.groupArray(subq.c.emotion_label), func.groupArray(subq.c.emotion_count)
+      ).label("emotions"),
     ).group_by(subq.c.level2)
-    
+
     if params.order_by == OrderEnum.ASC:
       query = query.order_by(func.sum(subq.c.emotion_count).asc())
     else:
@@ -164,41 +170,42 @@ class MessageRepository:
     result = await self.db.execute(query)
     return result.mappings().all()
 
-
   async def delete_message(self, id: str) -> None:
     """Delete message by ID"""
+    # ClickHouse delete is a mutation
     await self.db.execute(delete(Message).where(Message.id == id))
-    await self.db.commit()
 
   async def get_existing_hashes(self, hashes: list[str]) -> set[str]:
     """Get existing content hashes from the database"""
     if not hashes:
       return set()
-    
+
     query = select(Message.content_hash).where(Message.content_hash.in_(hashes))
     result = await self.db.execute(query)
     return set(result.scalars().all())
 
   async def get_emotion_dynamics(self, params: EmotionDynamicsQuery):
     """Get aggregated emotion data grouped by time intervals"""
+    # ClickHouse: date_trunc('hour', event_date) or toStartOfHour, etc.
+    # SQLAlchemy func.date_trunc works if mapped to ClickHouse capability
     trunc_date = func.date_trunc(params.granularity.value, Message.event_date).label("period")
 
     sentiment_weight = case(
-      (Message.sentiment_label == SentimentEnum.POSITIVE, 1),
-      (Message.sentiment_label == SentimentEnum.NEGATIVE, -1),
+      (Message.sentiment_label == SentimentEnum.POSITIVE.name, 1),
+      (Message.sentiment_label == SentimentEnum.NEGATIVE.name, -1),
       else_=0,
     )
 
     emotion_weight = case(
-      (Message.emotion_label.in_([EmotionEnum.JOY, EmotionEnum.INTEREST]), 1),
+      (Message.emotion_label.in_([EmotionEnum.JOY.name, EmotionEnum.INTEREST.name]), 1),
       (
         Message.emotion_label.in_(
           [
-            EmotionEnum.ANGER,
-            EmotionEnum.FEAR,
-            EmotionEnum.DISGUST,
-            EmotionEnum.SADNESS,
-            EmotionEnum.GUILT,
+            EmotionEnum.ANGER.name,
+            EmotionEnum.FEAR.name,
+            EmotionEnum.DISGUST.name,
+            EmotionEnum.SADNESS.name,
+            EmotionEnum.GUILT.name,
           ]
         ),
         -1,
@@ -217,7 +224,7 @@ class MessageRepository:
     if params.level1_category is not None:
       query = query.filter(Message.category_level_1 == params.level1_category)
     if params.level2_category is not None:
-      query = query.filter(Message.category_level_2.contains([params.level2_category]))
+      query = query.filter(func.has(Message.category_level_2, params.level2_category))
     if params.emotion_label is not None:
       query = query.filter(Message.emotion_label.in_(params.emotion_label))
     if params.sentiment_label is not None:
@@ -230,5 +237,6 @@ class MessageRepository:
     query = query.group_by(trunc_date, Message.emotion_label).order_by(trunc_date.asc())
 
     result = await self.db.execute(query)
-    return result.mappings().all()
+    rows = result.mappings().all()
 
+    return rows

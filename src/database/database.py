@@ -17,3 +17,10 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db():
   async with AsyncSessionLocal() as session:
     yield session
+
+
+async def init_models():
+  async with engine.connect() as conn:
+    from src.database.models import message
+
+    await conn.run_sync(Base.metadata.create_all)

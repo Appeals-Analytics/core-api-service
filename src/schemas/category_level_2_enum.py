@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class CategoryLevel2Enum(Enum):
+class CategoryLevel2Enum(str, Enum):
   # Before Flight
   BOOKING = "booking"
   PAYMENT = "payment"

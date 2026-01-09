@@ -8,6 +8,9 @@ from src.api.message.service import MessageService
 from src.api.message.schemas import MessageCreate
 
 from src.services import kafka_settings
+from src.app.config import configs
+import asyncio
+import time
 
 
 class KafkaService:
@@ -95,12 +98,12 @@ class KafkaService:
       raise RuntimeError("Producer not initialized. Call start_producer() first.")
 
     for message in messages:
-        # If message is already a string (JSON), we might want to bypass serializer or pass it as is if serializer handles it.
-        # But serializer is fixed to json.dumps.
-        # If we pass a dict, it works.
-        # If FilesService passes strings, we should probably parse them back or change FilesService to pass dicts.
-        await self.producer.send(topic, message)
-    
+      # If message is already a string (JSON), we might want to bypass serializer or pass it as is if serializer handles it.
+      # But serializer is fixed to json.dumps.
+      # If we pass a dict, it works.
+      # If FilesService passes strings, we should probably parse them back or change FilesService to pass dicts.
+      await self.producer.send(topic, message)
+
     await self.producer.flush()
 
   async def consume_messages(self: Self) -> AsyncGenerator[dict, None]:
@@ -111,25 +114,59 @@ class KafkaService:
       yield message.value
 
   async def consume_and_save_messages(self: Self):
-    """Consume messages and save them to the database"""
+    """Consume messages and save them to the database in batches"""
     if not self.consumer:
       raise RuntimeError("Consumer not initialized. Call start_consumer() first.")
 
-    async for message in self.consumer:
-      if message.topic != kafka_settings.topic_in:
-        continue
+    batch = []
+    last_flush_time = time.time()
 
-      tp = TopicPartition(message.topic, message.partition)
+    while True:
       try:
-        message_data = json.loads(message.value)
-        async with AsyncSessionLocal() as session:
-          msg_create = MessageCreate(**message_data)
-          print(message_data)
-          await MessageService.create_message(session, msg_create)
+        result = await self.consumer.getmany(timeout_ms=1000, max_records=configs.kafka_batch_size)
 
-          await self.consumer.commit({tp: message.offset + 1})
+        for tp, messages in result.items():
+          for message in messages:
+            if message.topic != kafka_settings.topic_in:
+              continue
+
+            try:
+              message_data = json.loads(message.value)
+              validated_msg = MessageCreate(**message_data)
+
+              msg_dict = validated_msg.model_dump()
+
+              batch.append(msg_dict)
+            except Exception as e:
+              print(f"Error parsing/validating Kafka message: {e}")
+
+        current_time = time.time()
+        is_batch_full = len(batch) >= configs.kafka_batch_size
+        is_time_to_flush = (current_time - last_flush_time) >= configs.kafka_flush_interval
+
+        if batch and (is_batch_full or is_time_to_flush):
+          print(
+            f"Flushing {len(batch)} messages to ClickHouse. trigger: {'batch_full' if is_batch_full else 'timeout'}"
+          )
+          try:
+            async with AsyncSessionLocal() as session:
+              await MessageService.create_messages_batch(session, batch)
+
+            await self.consumer.commit()
+
+            batch = []
+            last_flush_time = current_time
+            print("Flush successful.")
+          except Exception as e:
+            print(f"Error saving batch to ClickHouse: {e}")
+            await asyncio.sleep(10)
+        elif not batch:
+          pass
+        await asyncio.sleep(10)
+
       except Exception as e:
-        print(f"Error processing Kafka message: {e}")
+        print(f"Error in consumer loop: {e}")
+        await asyncio.sleep(1)
 
   async def close(self: Self):
     if self.producer:

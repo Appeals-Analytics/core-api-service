@@ -44,6 +44,8 @@ class MessageCreate(BaseModel):
     ..., description="Secondary category classifications"
   )
 
+  content_hash: str = Field(..., description="Content hash for filter by unique values")
+
   @field_validator("event_date", mode="before")
   @classmethod
   def normalize_event_date(cls, v):
@@ -83,13 +85,15 @@ class MessageCreate(BaseModel):
 class MessageQueryFilter(BaseModel):
   start_date: Optional[datetime] = Field(
     default_factory=lambda: to_naive_utc(datetime.now(timezone.utc) - timedelta(days=7)),
-    description="Start date for filtering messages"
+    description="Start date for filtering messages",
   )
   end_date: Optional[datetime] = Field(
     default_factory=lambda: to_naive_utc(datetime.now(timezone.utc)),
-    description="End date for filtering messages"
+    description="End date for filtering messages",
   )
-  sentiment_label: Optional[List[SentimentEnum]] = Field(None, description="Sentiment labels to filter by")
+  sentiment_label: Optional[List[SentimentEnum]] = Field(
+    None, description="Sentiment labels to filter by"
+  )
   emotion_label: Optional[List[EmotionEnum]] = Field(None, description="Emotion labels to filter by")
   category_level_1: Optional[CategoryLevel1Enum] = Field(
     None, description="Primary category to filter by"
