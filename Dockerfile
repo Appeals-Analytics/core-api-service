@@ -17,7 +17,7 @@ RUN useradd --create-home --shell /bin/bash appuser
 USER appuser
 WORKDIR /home/appuser/app
 
-COPY --from=builder /app/ ./
+COPY --from=builder --chown=appuser:appuser /app/ ./
 
 ENV PATH="/home/appuser/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
